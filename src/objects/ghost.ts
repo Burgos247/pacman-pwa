@@ -122,24 +122,21 @@ export class Ghost extends TurningObject {
   }
 
   escapeFromHome(delay: number) {
-    this.scene.tweens.add({
-      targets: this,
-      alpha: 0,
-      duration: 300,
-      delay,
-      onComplete: () => {
-        this.setPosition(this.home.x, this.home.y);
-        (this.body as Phaser.Physics.Arcade.Body).reset(this.home.x, this.home.y);
-        this.scene.tweens.add({
-          targets: this,
-          alpha: 1,
-          duration: 300,
-          onComplete: () => {
-            this.onStart();
-            this.sfx.regenerate.play();
-          },
-        });
-      },
+    this.scene.time.delayedCall(delay, () => {
+      this.scene.tweens.add({
+        targets: this,
+        alpha: 0,
+        duration: 200,
+        yoyo: true,
+        onYoyo: () => {
+          this.setPosition(this.home.x, this.home.y);
+          (this.body as Phaser.Physics.Arcade.Body).reset(this.home.x, this.home.y);
+        },
+        onComplete: () => {
+          this.onStart();
+          this.sfx.regenerate.play();
+        },
+      });
     });
   }
 

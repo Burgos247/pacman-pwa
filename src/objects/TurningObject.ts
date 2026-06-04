@@ -85,14 +85,17 @@ export abstract class TurningObject extends Phaser.Physics.Arcade.Sprite {
     let speed = this.currentSpeed;
     if (direction === Dir.LEFT || direction === Dir.UP) speed = -speed;
 
+    // Compute the perpendicular-axis snap from the current sprite position,
+    // not from `this.marker` (which may be stale or unset on first call).
     if (direction === Dir.LEFT || direction === Dir.RIGHT) {
-      // Lock Y to tile center to avoid grazing walls in adjacent rows.
-      const cy = this.marker.y * this.tileSize + this.tileSize / 2;
+      const tileY = Math.floor(this.y / this.tileSize);
+      const cy = tileY * this.tileSize + this.tileSize / 2;
       this.y = cy;
       (this.body as Phaser.Physics.Arcade.Body).reset(this.x, cy);
       this.setVelocity(speed, 0);
     } else if (direction === Dir.UP || direction === Dir.DOWN) {
-      const cx = this.marker.x * this.tileSize + this.tileSize / 2;
+      const tileX = Math.floor(this.x / this.tileSize);
+      const cx = tileX * this.tileSize + this.tileSize / 2;
       this.x = cx;
       (this.body as Phaser.Physics.Arcade.Body).reset(cx, this.y);
       this.setVelocity(0, speed);
