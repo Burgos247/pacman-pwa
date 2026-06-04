@@ -379,6 +379,14 @@ export class GameScene extends Phaser.Scene {
     const sprite = this.bonuses.create(pos.x, pos.y, name) as Phaser.Physics.Arcade.Sprite;
     sprite.setOrigin(0.5);
     (sprite.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+    // Fruits stay ~10s then vanish — fade out as a hint to the player.
+    this.tweens.add({
+      targets: sprite,
+      alpha: 0,
+      delay: 8000,
+      duration: 2000,
+      onComplete: () => sprite.destroy(),
+    });
   }
 
   private initUI() {
