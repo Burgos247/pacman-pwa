@@ -1,7 +1,15 @@
 import Phaser from 'phaser';
 import { TurningObject } from './TurningObject';
-import { Dir, OPPOSITE } from '../utils/directions';
+import { DELTA, Dir, OPPOSITE } from '../utils/directions';
 import type { GhostMode, GhostName, SFX, Wave } from '../types/game';
+
+export interface ChaseContext {
+  pacmanX: number;
+  pacmanY: number;
+  pacmanDir: Dir;
+  blinkyX: number;
+  blinkyY: number;
+}
 
 export class Ghost extends TurningObject {
   mode: GhostMode = 'scatter';
@@ -111,10 +119,43 @@ export class Ghost extends TurningObject {
     if (this.mode === 'frightened') this.play('prenormal');
   }
 
-  updateTarget(target: { x: number; y: number }) {
+  updateTarget(ctx: ChaseContext) {
     if (!this.inGame) return;
-    if (this.mode === 'frightened' || this.mode === 'chase') {
-      this.target.set(target.x, target.y);
+    // Frightened picks random directions; scatter has a fixed corner; dead
+    // heads home. Only chase mode benefits from per-ghost personality.
+    if (this.mode !== 'chase') return;
+
+    switch (this.ghostName) {
+      case 'blinky': {
+        this.target.set(ctx.pacmanX, ctx.pacmanY);
+        break;
+      }
+      case 'pinky': {
+        const d = DELTA[ctx.pacmanDir];
+        this.target.set(
+          ctx.pacmanX + d.x * 4 * this.tileSize,
+          ctx.pacmanY + d.y * 4 * this.tileSize,
+        );
+        break;
+      }
+      case 'inky': {
+        const d = DELTA[ctx.pacmanDir];
+        const ax = ctx.pacmanX + d.x * 2 * this.tileSize;
+        const ay = ctx.pacmanY + d.y * 2 * this.tileSize;
+        this.target.set(2 * ax - ctx.blinkyX, 2 * ay - ctx.blinkyY);
+        break;
+      }
+      case 'clyde': {
+        const dx = ctx.pacmanX - this.x;
+        const dy = ctx.pacmanY - this.y;
+        const farEnough = dx * dx + dy * dy > (8 * this.tileSize) ** 2;
+        if (farEnough) {
+          this.target.set(ctx.pacmanX, ctx.pacmanY);
+        } else {
+          this.target.set(this.scatterTarget.x, this.scatterTarget.y);
+        }
+        break;
+      }
     }
   }
 

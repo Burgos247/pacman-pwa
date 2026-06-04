@@ -7,6 +7,7 @@ export class Pacman extends TurningObject {
   mode: PacmanMode = 'normal';
   sfx!: SFX;
   started = false;
+  canStart = false;
 
   private startFrame = 0;
   private powerTimer?: Phaser.Time.TimerEvent;
@@ -24,6 +25,7 @@ export class Pacman extends TurningObject {
   }
 
   onControls(direction: Dir) {
+    if (!this.canStart) return;
     if (direction !== this.current && this.active) {
       this.checkDirection(direction);
     }

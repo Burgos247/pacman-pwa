@@ -96,6 +96,30 @@ export class GameScene extends Phaser.Scene {
     );
 
     this.sfx.intro.play();
+    this.startReadyCountdown();
+  }
+
+  private popText(x: number, y: number, text: string, tint = 0xffffff, size = 8) {
+    const t = this.add.bitmapText(x, y, 'kong', text, size).setOrigin(0.5).setTint(tint).setDepth(50);
+    this.tweens.add({
+      targets: t,
+      y: y - 18,
+      alpha: 0,
+      duration: 700,
+      ease: 'Quad.easeOut',
+      onComplete: () => t.destroy(),
+    });
+  }
+
+  private startReadyCountdown() {
+    const cx = this.scale.width / 2;
+    const cy = this.scale.height / 2 + 24;
+    const ready = this.add.bitmapText(cx, cy, 'kong', 'READY!', 16).setOrigin(0.5).setTint(0xfed049);
+    this.pacman.canStart = false;
+    this.time.delayedCall(2000, () => {
+      ready.destroy();
+      this.pacman.canStart = true;
+    });
   }
 
   update() {
@@ -116,9 +140,17 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    const blinky = this.ghosts[0];
+    const chaseCtx = {
+      pacmanX: this.pacman.x,
+      pacmanY: this.pacman.y,
+      pacmanDir: this.pacman.current,
+      blinkyX: blinky?.x ?? this.pacman.x,
+      blinkyY: blinky?.y ?? this.pacman.y,
+    };
     this.ghosts.forEach((g) => {
       g.updatePosition(this.wallsLayer);
-      g.updateTarget({ x: this.pacman.x, y: this.pacman.y });
+      g.updateTarget(chaseCtx);
     });
 
     if (this.pacman.mode === 'power') {
@@ -308,6 +340,7 @@ export class GameScene extends Phaser.Scene {
     const sprite = item as Phaser.Physics.Arcade.Sprite;
     const key = sprite.texture.key;
     const amount = BONUS_MULT[key] ?? 1;
+    this.popText(sprite.x, sprite.y, `x${amount}`, 0xfed049, 12);
     sprite.destroy();
     this.sfx.fruit.play();
     this.multi *= amount;
@@ -318,6 +351,7 @@ export class GameScene extends Phaser.Scene {
 
   private powerMode: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (_pacman, pill) => {
     const sprite = pill as Phaser.Physics.Arcade.Sprite;
+    this.popText(sprite.x, sprite.y, `+${POINTS.pill * this.multi}`, 0xf7c948, 10);
     sprite.disableBody(true, true);
     this.updateScore(POINTS.pill);
 
@@ -350,6 +384,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.active) return;
     if (!this.pacman.active || !ghost.active) return;
     if (ghost.mode === 'frightened' && this.pacman.mode === 'power') {
+      this.popText(ghost.x, ghost.y, `+${200 * this.multi}`, 0x00ffff, 12);
       ghost.die();
       this.updateScore(200);
     } else if (ghost.mode === 'dead') {
@@ -373,6 +408,11 @@ export class GameScene extends Phaser.Scene {
           blinky.setPosition(pinky.x, pinky.y);
           (blinky.body as Phaser.Physics.Arcade.Body).reset(pinky.x, pinky.y);
         }
+        // After the die animation finishes pacman is back at his respawn;
+        // show READY! again to mirror the original Pacman pacing.
+        this.time.delayedCall(1300, () => {
+          if (this.active) this.startReadyCountdown();
+        });
       }
     }
   }
