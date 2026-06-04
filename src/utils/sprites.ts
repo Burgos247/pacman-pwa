@@ -143,7 +143,7 @@ function registerPill(scene: Phaser.Scene) {
  * Keys must stay in sync with BONUS_MULT in GameScene.
  */
 export const BONUSES = [
-  { key: 'wallet', emoji: '👛', mult: 2 },
+  { key: 'pizza', emoji: '🍕', mult: 2 },
   { key: 'whitepaper', emoji: '📄', mult: 3 },
   { key: 'node', emoji: '🖥', mult: 4 },
   { key: 'keys', emoji: '🔐', mult: 5 },
