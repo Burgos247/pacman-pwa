@@ -1,24 +1,14 @@
-import { PacmanGame } from '../';
+import Phaser from 'phaser';
 
-/**
- * Pellet object.
- */
-export class Pill extends Phaser.Sprite {
-  constructor(game: PacmanGame,
-              x: number,
-              y: number) {
-    const offset = game.tileSize / 2;
-
-    super(game, x - offset, y - offset, 'pill');
-  }
-
-  /**
-   * Setup object physics.
-   */
-  physics() {
-    this.game.physics.arcade.enable(this);
-    this.body.setSize(16, 16, 0, 0);
-    this.body.immovable = true;
-    this.anchor.set(0.5);
+export class Pill extends Phaser.Physics.Arcade.Sprite {
+  constructor(scene: Phaser.Scene, x: number, y: number, tileSize: number) {
+    const offset = tileSize / 2;
+    super(scene, x - offset, y - offset, 'pill');
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    body.setSize(tileSize, tileSize);
+    body.setImmovable(true);
+    this.setOrigin(0.5);
   }
 }

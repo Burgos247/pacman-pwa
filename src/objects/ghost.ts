@@ -1,360 +1,286 @@
-import { PacmanGame } from '../';
-import { Wave, SFX } from '../interfaces/game';
-import { TurningObject } from './turning';
-import { GhostMode } from '../interfaces/ghost';
+import Phaser from 'phaser';
+import { TurningObject } from './TurningObject';
+import { Dir, OPPOSITE } from '../utils/directions';
+import type { GhostMode, GhostName, SFX, Wave } from '../types/game';
 
-/**
- * Ghosts object boilerplate.
- */
 export class Ghost extends TurningObject {
-  mode: GhostMode;
-  sfx: SFX;
+  mode: GhostMode = 'scatter';
+  sfx!: SFX;
   inGame = false;
+  ghostName: GhostName;
 
-  private target = new Phaser.Point();
-  private scatterTarget = new Phaser.Point();
-  private prevMarker = new Phaser.Point();
-  private homeMarker = new Phaser.Point();
-  private recoverMode: GhostMode;
+  private target = new Phaser.Math.Vector2();
+  private scatterTarget = new Phaser.Math.Vector2();
+  private prevMarker = new Phaser.Math.Vector2(-1, -1);
+  private homeMarker = new Phaser.Math.Vector2();
+  private recoverMode: GhostMode = 'scatter';
   private waveCount = 0;
-  private timer: Phaser.Timer = this.game.time.create(false);
+  private waveTimer?: Phaser.Time.TimerEvent;
 
-  constructor(game: PacmanGame,
-              x: number,
-              y: number,
-              key: string,
-              frame: number,
-              tileSize: number,
-              speed: number,
-              target: Phaser.Point,
-              public home: Phaser.Point,
-              public wavesDurations: Wave[]) {
-    super(game, x, y, key, frame, tileSize, speed);
-
-    this.scatterTarget = target;
-    this.homeMarker.x = Math.floor(home.x / this.tileSize);
-    this.homeMarker.y = Math.floor(home.y / this.tileSize);
-
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    name: GhostName,
+    tileSize: number,
+    speed: number,
+    target: { x: number; y: number },
+    public home: { x: number; y: number },
+    public wavesDurations: Wave[],
+  ) {
+    super(scene, x, y, name, 2, tileSize, speed, 8);
+    this.ghostName = name;
+    this.scatterTarget.set(target.x, target.y);
+    this.homeMarker.set(Math.floor(home.x / tileSize), Math.floor(home.y / tileSize));
     this.setAnimations();
     this.setSFX();
   }
 
-  /**
-   * Updates object position.
-   * @param map - game map.
-   * @param index - layer index.
-   */
-  updatePosition(map: Phaser.Tilemap, index: number) {
-    // Prevent updates if inactive.
-    if (!this.inGame && this.mode !== 'dead') {
-      return;
-    }
+  updatePosition(wallsLayer: Phaser.Tilemaps.TilemapLayer) {
+    if (!this.inGame && this.mode !== 'dead') return;
 
-    super.updatePosition(map, index);
+    super.updatePosition(wallsLayer);
 
-    // Checks if new grid position.
-    if (!Phaser.Point.equals(this.prevMarker, this.marker)) {
-      const posibilities = this.getPosibleDirections();
-
-      // Make move decision.
-      if (posibilities.length > 1) {
-        const choice = this.chooseDirection(posibilities);
-
+    if (!this.marker.equals(this.prevMarker)) {
+      const possibilities = this.getPossibleDirections();
+      if (possibilities.length > 1) {
+        const choice = this.chooseDirection(possibilities);
         this.checkDirection(choice);
-      } else {
-        this.move(posibilities[0]);
+      } else if (possibilities.length === 1) {
+        this.move(possibilities[0]);
       }
-
-      this.prevMarker = Object.assign({}, this.marker);
+      this.prevMarker.copy(this.marker);
     }
 
-    // If resurect point.
-    if (this.mode === 'dead' &&
-        Phaser.Point.equals(this.homeMarker, this.marker)) {
+    if (this.mode === 'dead' && this.marker.equals(this.homeMarker)) {
       this.disableDeadMode();
     }
 
-    // Prevent to stop.
-    if (this.body.velocity.x === 0 && this.body.velocity.y === 0) {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body.velocity.x === 0 && body.velocity.y === 0 && this.current !== Dir.NONE) {
       this.move(this.current);
     }
 
-    if (this.turning !== Phaser.NONE) {
+    if (this.turning !== Dir.NONE) {
       this.turn();
     }
   }
 
-  /**
-   * Respawns ghost.
-   */
-  respawn() {
-    super.respawn();
-
+  doRespawn() {
+    super.doRespawn();
     this.mode = 'scatter';
     this.restoreSpeed();
     this.inGame = false;
-    this.play('walk');
-    this.animations.stop('walk', true);
-    this.timer.pause();
+    this.waveCount = 0;
+    this.prevMarker.set(-1, -1);
+    this.waveTimer?.remove();
+    this.play(this.walkKey());
+    this.anims.stop();
   }
 
-  /**
-   * Ghost death.
-   */
   die() {
-    super.die();
-
     this.sfx.death.play();
     this.enableDeadMode();
   }
 
-  /**
-   * Enables sensitive mode.
-   */
-  enableSensetiveMode() {
-    if (!this.inGame) {
-      return;
-    }
-
-    if (this.mode !== 'frightened') {
-      this.recoverMode = this.mode;
-    }
-
+  enableFrightenedMode() {
+    if (!this.inGame) return;
+    if (this.mode !== 'frightened') this.recoverMode = this.mode;
     this.mode = 'frightened';
     this.play('bored');
     this.updateSpeed(this.speed * 0.5);
-    this.timer.pause();
+    this.waveTimer?.paused && (this.waveTimer.paused = true);
+    if (this.waveTimer) this.waveTimer.paused = true;
     this.onModeSwitch();
   }
 
-  /**
-   * Disables sensitive mode.
-   */
-  disableSensetiveMode() {
-    if (!this.inGame) {
-      return;
-    }
-
+  disableFrightenedMode() {
+    if (!this.inGame) return;
     this.mode = this.recoverMode;
-
-    this.play('walk');
+    this.play(this.walkKey());
     this.restoreSpeed();
-    this.timer.resume();
+    if (this.waveTimer) this.waveTimer.paused = false;
     this.onModeSwitch();
   }
 
-  /**
-   * Changes sensetive animation.
-   */
   normalSoon() {
-    if (this.mode === 'frightened') {
-      this.play('prenormal');
+    if (this.mode === 'frightened') this.play('prenormal');
+  }
+
+  updateTarget(target: { x: number; y: number }) {
+    if (!this.inGame) return;
+    if (this.mode === 'frightened' || this.mode === 'chase') {
+      this.target.set(target.x, target.y);
     }
   }
 
-  /**
-   * Updates target to follow.
-   * @param target - current target object.
-   */
-  updateTarget(target: Phaser.Point) {
-    if (!this.inGame) {
-      return;
-    }
-
-    if (this.mode === 'frightened' ||
-        this.mode === 'chase') {
-      this.target = target;
-    }
-  }
-
-  /**
-   * Ghost game start hook.
-   */
   onStart() {
-    this.initTimer();
     this.inGame = true;
+    this.waveCount = 0;
     this.enableScatterMode();
-    this.move(Phaser.LEFT);
+    this.move(Dir.LEFT);
   }
 
-  /**
-   * Move ghost out of house.
-   * @param delay - milliseconds.
-   */
   escapeFromHome(delay: number) {
-    const fadeOut = this.game.add.tween(this)
-      .to({alpha: 0}, 300, 'Linear', false, delay);
-
-    const fadeIn = this.game.add.tween(this)
-      .to({alpha: 1}, 300, 'Linear');
-
-    fadeOut.onComplete.addOnce(() => {
-      this.reset(this.home.x, this.home.y);
-      fadeIn.start();
+    this.scene.tweens.add({
+      targets: this,
+      alpha: 0,
+      duration: 300,
+      delay,
+      onComplete: () => {
+        this.setPosition(this.home.x, this.home.y);
+        (this.body as Phaser.Physics.Arcade.Body).reset(this.home.x, this.home.y);
+        this.scene.tweens.add({
+          targets: this,
+          alpha: 1,
+          duration: 300,
+          onComplete: () => {
+            this.onStart();
+            this.sfx.regenerate.play();
+          },
+        });
+      },
     });
-
-    fadeIn.onComplete.addOnce(() => {
-      this.onStart();
-      this.sfx.regenerate.play();
-    });
-
-    fadeOut.start();
   }
 
-  /**
-   * Gets all possible direction.
-   */
-  private getPosibleDirections() {
-    return this.directions
-      .reduce((indexes, point, i) => {
-        if (point && point.index === -1 &&
-          i !== this.opposites[this.current]) {
-          indexes.push(i);
-        }
-
-        return indexes;
-      }, []);
+  private getPossibleDirections(): Dir[] {
+    const result: Dir[] = [];
+    const back = OPPOSITE[this.current];
+    ([Dir.LEFT, Dir.RIGHT, Dir.UP, Dir.DOWN] as const).forEach((d) => {
+      const tile = this.directions[d];
+      if (tile && tile.index === -1 && d !== back) result.push(d);
+    });
+    return result;
   }
 
-  /**
-   * Make mode decision.
-   * @param posibilities - possible directions.
-   */
-  private chooseDirection(posibilities: number[]): number {
-    const sorted = posibilities
-      .slice()
-      .sort((a: number, b: number) => {
-        return Phaser.Point.distance(this.directions[a], this.target) -
-               Phaser.Point.distance(this.directions[b], this.target);
-      });
+  private chooseDirection(possibilities: Dir[]): Dir {
+    const sorted = [...possibilities].sort((a, b) => {
+      const aDist = this.dirDistance(a);
+      const bDist = this.dirDistance(b);
+      return aDist - bDist;
+    });
 
-    // Random choose mode.
     if (this.mode === 'frightened') {
-      return sorted[this.game.rnd.integerInRange(0, sorted.length - 1)];
+      return sorted[Phaser.Math.Between(0, sorted.length - 1)];
     }
-
-    // Closests to target.
-    return sorted.shift();
+    return sorted[0];
   }
 
-  /**
-   * Inits object animations.
-   */
+  private dirDistance(d: Dir): number {
+    const tile = this.directions[d];
+    if (!tile) return Number.MAX_VALUE;
+    const dx = tile.pixelX - this.target.x;
+    const dy = tile.pixelY - this.target.y;
+    return dx * dx + dy * dy;
+  }
+
   private setAnimations() {
-    this.animations.add('walk', [0, 1, 2, 3, 4, 5, 6, 7], 4, true);
-    this.animations.add('bored', [8, 9], 4, true);
-    this.animations.add('prenormal', [8, 9, 10, 11], 4, true);
-    this.animations.add('dead', [12, 13, 14, 15], 4, true);
+    const anims = this.scene.anims;
+    const walkKey = this.walkKey();
+    if (!anims.exists(walkKey)) {
+      anims.create({
+        key: walkKey,
+        frames: anims.generateFrameNumbers(this.ghostName, { frames: [0, 1, 2, 3, 4, 5, 6, 7] }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
+    if (!anims.exists('bored')) {
+      anims.create({
+        key: 'bored',
+        frames: anims.generateFrameNumbers(this.ghostName, { frames: [8, 9] }),
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
+    if (!anims.exists('prenormal')) {
+      anims.create({
+        key: 'prenormal',
+        frames: anims.generateFrameNumbers(this.ghostName, { frames: [8, 9, 10, 11] }),
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
+    if (!anims.exists('dead-' + this.ghostName)) {
+      anims.create({
+        key: 'dead-' + this.ghostName,
+        frames: anims.generateFrameNumbers(this.ghostName, { frames: [12, 13, 14, 15] }),
+        frameRate: 6,
+        repeat: -1,
+      });
+    }
   }
 
-  /**
-   * Inits objects sounds.
-   */
+  private walkKey(): string {
+    return 'walk-' + this.ghostName;
+  }
+
   private setSFX() {
     this.sfx = {
-      death: this.game.add.audio('ghost'),
-      regenerate: this.game.add.audio('regenerate')
+      death: this.scene.sound.add('ghost'),
+      regenerate: this.scene.sound.add('regenerate'),
     };
   }
 
-  /**
-   * Setup new mode timer.
-   */
-  private initTimer() {
-    this.timer.destroy();
-    this.timer = this.game.time.create(false);
-  }
-
-  /**
-   * Gets mode duration.
-   */
   private getWaveDuration(): number {
-    return this.wavesDurations.length ? this.wavesDurations[this.waveCount][this.mode] : 0;
+    const wave = this.wavesDurations[this.waveCount];
+    if (!wave) return 0;
+    if (this.mode === 'scatter') return wave.scatter ?? 0;
+    if (this.mode === 'chase') return wave.chase ?? 0;
+    return 0;
   }
 
-  /**
-   * Enables scatter mode.
-   */
   private enableScatterMode() {
-    if (!this.inGame) {
-      return;
-    }
-
-    this.target = Object.assign({}, this.scatterTarget);
+    if (!this.inGame) return;
+    this.target.set(this.scatterTarget.x, this.scatterTarget.y);
     this.mode = 'scatter';
-    this.play('walk');
+    this.play(this.walkKey());
 
     const duration = this.getWaveDuration();
-
-    if (duration) {
-      this.timer.add(duration, () => {
+    if (duration > 0) {
+      this.waveTimer = this.scene.time.delayedCall(duration, () => {
         this.enableChaseMode();
         this.onModeSwitch();
       });
-
-      this.timer.start();
     }
   }
 
-  /**
-   * Enables chase mode.
-   */
   private enableChaseMode() {
-    if (!this.inGame) {
-      return;
-    }
-
+    if (!this.inGame) return;
     this.mode = 'chase';
-    this.play('walk');
+    this.play(this.walkKey());
 
     const duration = this.getWaveDuration();
-
-    if (duration) {
+    if (duration > 0) {
       this.waveCount++;
-
-      this.timer.add(duration, () => {
+      this.waveTimer = this.scene.time.delayedCall(duration, () => {
         this.enableScatterMode();
         this.onModeSwitch();
       });
     }
   }
 
-  /**
-   * Enables dead mode.
-   */
   private enableDeadMode() {
-    if (this.mode !== 'frightened') {
-      return;
-    }
-
+    if (this.mode !== 'frightened') return;
     this.mode = 'dead';
-
     this.inGame = false;
-    this.play('dead');
-    this.updateSpeed(this.speed * 0.2);
-    this.target = Object.assign({}, this.homeMarker);
+    this.play('dead-' + this.ghostName);
+    this.updateSpeed(this.speed * 1.5);
+    this.target.set(this.homeMarker.x * this.tileSize, this.homeMarker.y * this.tileSize);
     this.onModeSwitch();
   }
 
-  /**
-   * Enables normal mode.
-   */
   private disableDeadMode() {
     this.mode = this.recoverMode;
-
-    this.play('walk');
+    this.play(this.walkKey());
     this.sfx.regenerate.play();
-    this.alive = true;
     this.inGame = true;
     this.restoreSpeed();
-    this.timer.resume();
-    this.move(Phaser.LEFT);
+    if (this.waveTimer) this.waveTimer.paused = false;
+    this.move(Dir.LEFT);
   }
 
-  /**
-   * Force move direction switch.
-   */
   private onModeSwitch() {
-    this.checkDirection(this.opposites[this.current]);
+    this.checkDirection(OPPOSITE[this.current]);
   }
 }

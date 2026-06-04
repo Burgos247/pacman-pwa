@@ -1,29 +1,21 @@
-import { PacmanGame } from '../';
+import Phaser from 'phaser';
+import type { PortalProps } from '../types/game';
 
-export interface PortalProps {
-  i: number;
-  target: number;
-}
+export class Portal extends Phaser.GameObjects.Zone {
+  declare body: Phaser.Physics.Arcade.Body;
 
-/**
- * Map portal object.
- */
-export class Portal extends Phaser.Sprite {
-  constructor(game: PacmanGame,
-              x: number,
-              y: number,
-              public width: number,
-              public height: number,
-              public props: PortalProps) {
-    super(game, x, y, null);
-  }
-
-  /**
-   * Setup object physics.
-   */
-  physics() {
-    this.game.physics.arcade.enable(this);
-    this.body.setSize(this.width, this.height, 0, 0);
-    this.body.immovable = true;
+  constructor(
+    scene: Phaser.Scene,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    public props: PortalProps,
+  ) {
+    super(scene, x + width / 2, y + height / 2, Math.max(width, 1), Math.max(height, 1));
+    scene.add.existing(this);
+    scene.physics.add.existing(this);
+    this.body.setAllowGravity(false);
+    this.body.setImmovable(true);
   }
 }

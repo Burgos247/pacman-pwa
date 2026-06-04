@@ -1,156 +1,122 @@
-import { PacmanGame } from '../';
-import { PacmanMode } from '../interfaces/pacman';
-import { SFX } from '../interfaces/game';
-import { TurningObject } from './turning';
+import Phaser from 'phaser';
+import { TurningObject } from './TurningObject';
+import { Dir } from '../utils/directions';
+import type { PacmanMode, SFX } from '../types/game';
 
-/**
- * Pacman hero.
- */
 export class Pacman extends TurningObject {
-  mode: PacmanMode;
-  sfx: SFX;
+  mode: PacmanMode = 'normal';
+  sfx!: SFX;
+  started = false;
 
-  private started = false;
   private startFrame = 0;
-  private powerTimer: Phaser.TimerEvent;
-  private afterStartFn: Function;
+  private powerTimer?: Phaser.Time.TimerEvent;
+  private afterStartFn?: () => void;
+  private onPowerEnd?: () => void;
 
-  constructor(game: PacmanGame,
-              x: number,
-              y: number,
-              tileSize: number,
-              speed: number) {
-    super(game, x, y, 'pacman', 0, tileSize, speed, 16);
-
+  constructor(scene: Phaser.Scene, x: number, y: number, tileSize: number, speed: number) {
+    super(scene, x, y, 'pacman', 0, tileSize, speed, 16);
     this.setAnimations();
     this.setSFX();
   }
 
-  /**
-   * Sets move start hook.
-   * @param callback - hook to invoke.
-   */
-  afterStart(callback: Function) {
+  afterStart(callback: () => void) {
     this.afterStartFn = callback;
   }
 
-  /**
-   * Move on controls.
-   * @param direction - movement direction.
-   */
-  onControls(direction: number) {
-    if (direction !== this.current && this.alive) {
+  onControls(direction: Dir) {
+    if (direction !== this.current && this.active) {
       this.checkDirection(direction);
     }
 
     if (!this.started && this.turning === direction) {
       this.disablePowerMode();
       this.move(direction);
-      this.sfx.munch.play(undefined, undefined, undefined, true);
+      this.sfx.munch.play({ loop: true });
       this.started = true;
-      this.afterStartFn();
+      this.afterStartFn?.();
     }
   }
 
-  /**
-   * Enables power mode.
-   * @param time - milliseconds.
-   * @param onStart - mode start hook.
-   * @param onEnd - mode end hook.
-   */
-  enablePowerMode(time: number, onStart: Function, onEnd: Function) {
-    if (this.mode === 'power') {
-      // If already in power mode increase time.
-      time += this.game.time.events.duration;
-      this.powerTimer.timer.destroy();
+  enablePowerMode(time: number, onStart: () => void, onEnd: () => void) {
+    if (this.mode === 'power' && this.powerTimer) {
+      time += this.powerTimer.getRemaining();
+      this.powerTimer.remove();
     } else {
       this.mode = 'power';
     }
 
     onStart();
-
-    this.powerTimer = this.game.time.events.add(time, () => {
+    this.onPowerEnd = onEnd;
+    this.powerTimer = this.scene.time.delayedCall(time, () => {
       this.disablePowerMode();
-    });
-
-    this.powerTimer.timer.onComplete.add(() => {
-      onEnd();
+      this.onPowerEnd?.();
     });
   }
 
-  /**
-   * Disables power mode.
-   */
   disablePowerMode() {
     this.mode = 'normal';
   }
 
-  /**
-   * Moves object.
-   * @param direction - movement direction.
-   */
-  move(direction: number) {
+  move(direction: Dir) {
     super.move(direction);
+    this.play('munch', true);
 
-    this.play('munch');
+    this.setFlipX(false);
+    this.setAngle(0);
 
-    this.scale.x = this.scaleSize;
-    this.angle = 0;
-
-    if (direction === Phaser.LEFT) {
-      this.scale.x = -this.scaleSize;
-    } else if (direction === Phaser.UP) {
-      this.angle = 270;
-    } else if (direction === Phaser.DOWN) {
-      this.angle = 90;
+    if (direction === Dir.LEFT) {
+      this.setFlipX(true);
+    } else if (direction === Dir.UP) {
+      this.setAngle(270);
+    } else if (direction === Dir.DOWN) {
+      this.setAngle(90);
     }
   }
 
-  /**
-   * Pacman death.
-   */
   die() {
-    super.die();
-
     this.stop();
-    this.scale.x = this.scaleSize;
-    this.angle = 0;
+    this.setFlipX(false);
+    this.setAngle(0);
     this.sfx.munch.stop();
     this.play('die');
     this.sfx.death.play();
   }
 
-  /**
-   * Pacman resurection.
-   */
-  respawn() {
-    super.respawn();
-
+  doRespawn() {
+    super.doRespawn();
     this.started = false;
+    this.setFrame(this.startFrame);
   }
 
-  /**
-   * Inits object animations.
-   */
   private setAnimations() {
-    this.animations.add('munch', [0, 1, 2, 1, 0], 15, true);
-    const die = this.animations.add('die', [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], 10, false);
-
-    die.onComplete.add(() => {
-      this.visible = false;
-      this.frame = this.startFrame;
-
-      this.respawn();
+    const anims = this.scene.anims;
+    if (!anims.exists('munch')) {
+      anims.create({
+        key: 'munch',
+        frames: anims.generateFrameNumbers('pacman', { frames: [0, 1, 2, 1, 0] }),
+        frameRate: 15,
+        repeat: -1,
+      });
+    }
+    if (!anims.exists('die')) {
+      anims.create({
+        key: 'die',
+        frames: anims.generateFrameNumbers('pacman', { frames: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] }),
+        frameRate: 10,
+        repeat: 0,
+      });
+    }
+    this.on(Phaser.Animations.Events.ANIMATION_COMPLETE_KEY + 'die', () => {
+      this.setVisible(false);
+      this.setFrame(this.startFrame);
+      this.doRespawn();
     });
   }
 
-  /**
-   * Setup object sounds.
-   */
   private setSFX() {
     this.sfx = {
-      munch: this.game.add.audio('munch', 0.7),
-      death: this.game.add.audio('death')
+      munch: this.scene.sound.add('munch', { volume: 0.5 }),
+      death: this.scene.sound.add('death'),
     };
   }
 }

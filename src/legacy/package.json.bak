@@ -1,0 +1,47 @@
+{
+  "name": "pacman-pwa",
+  "version": "1.0.0",
+  "description": "Pacman PWA arcade game build with Phaser & TypeScript.",
+  "main": "index.ts",
+  "scripts": {
+    "start": "webpack-dev-server --inline --hot --port 3000",
+    "build": "webpack",
+    "build:prod": "NODE_ENV=production webpack",
+    "deploy": "gh-pages -d dist",
+    "lint": "tslint src/**/*.ts",
+    "phaser-typings": "typings install github:photonstorm/phaser/v2/typescript/typings.json -GD"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vitaliy-bobrov/pacman-pwa.git"
+  },
+  "author": "Vitaliy Bobrov <bobrov1989@gmail.com> (https://vitaliy-bobrov.github.io)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/vitaliy-bobrov/pacman-pwa/issues"
+  },
+  "homepage": "https://vitaliy-bobrov.github.io/pacman-pwa/",
+  "dependencies": {
+    "phaser": "^2.6.2",
+    "phaser-swipe": "^1.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^12.7.12",
+    "browser-sync": "^2.18.8",
+    "browser-sync-webpack-plugin": "^2.2.2",
+    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "^5.0.4",
+    "expose-loader": "^0.7.3",
+    "gh-pages": "^2.0.1",
+    "html-webpack-plugin": "^3.2.0",
+    "sw-precache-webpack-plugin": "^0.11.5",
+    "ts-loader": "^6.2.0",
+    "tslint": "^5.20.0",
+    "typescript": "^3.6.4",
+    "uglifyjs-webpack-plugin": "^2.2.0",
+    "webpack": "^4.41.0",
+    "webpack-cli": "^3.3.9",
+    "webpack-copy-plugin": "^0.0.4",
+    "webpack-dev-server": "^3.8.2"
+  }
+}

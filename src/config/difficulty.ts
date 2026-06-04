@@ -1,26 +1,19 @@
-export const difficulty = [
+import type { DifficultyLevel } from '../types/game';
+
+export const TILE_SIZE = 16;
+
+export const difficulty: DifficultyLevel[] = [
   {
     multiplier: 1,
     powerModeTime: 7000,
     pacmanSpeed: 100,
     ghostSpeed: 90,
     wavesDurations: [
-      {
-        scatter: 7000,
-        chase: 20000
-      },
-      {
-        scatter: 7000,
-        chase: 20000
-      },
-      {
-        scatter: 5000,
-        chase: 20000
-      },
-      {
-        scatter: 5000
-      }
-    ]
+      { scatter: 7000, chase: 20000 },
+      { scatter: 7000, chase: 20000 },
+      { scatter: 5000, chase: 20000 },
+      { scatter: 5000 },
+    ],
   },
   {
     multiplier: 2,
@@ -28,22 +21,11 @@ export const difficulty = [
     pacmanSpeed: 110,
     ghostSpeed: 100,
     wavesDurations: [
-      {
-        scatter: 5000,
-        chase: 15000
-      },
-      {
-        scatter: 5000,
-        chase: 20000
-      },
-      {
-        scatter: 3000,
-        chase: 15000
-      },
-      {
-        scatter: 3000
-      }
-    ]
+      { scatter: 5000, chase: 15000 },
+      { scatter: 5000, chase: 20000 },
+      { scatter: 3000, chase: 15000 },
+      { scatter: 3000 },
+    ],
   },
   {
     multiplier: 3,
@@ -51,21 +33,12 @@ export const difficulty = [
     pacmanSpeed: 120,
     ghostSpeed: 110,
     wavesDurations: [
-      {
-        scatter: 3000,
-        chase: 20000
-      },
-      {
-        scatter: 3000,
-        chase: 20000
-      },
-      {
-        scatter: 3000,
-        chase: 15000
-      },
-      {
-        scatter: 3000
-      }
-    ]
-  }
+      { scatter: 3000, chase: 20000 },
+      { scatter: 3000, chase: 20000 },
+      { scatter: 3000, chase: 15000 },
+      { scatter: 3000 },
+    ],
+  },
 ];
+
+export const MAX_LEVEL = difficulty.length;
