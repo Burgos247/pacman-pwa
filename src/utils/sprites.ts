@@ -150,7 +150,7 @@ export const BONUSES = [
   { key: 'satoshi', emoji: '⚡', mult: 6 },
   { key: 'orange', emoji: '🍊', mult: 7 },
   { key: 'mining', emoji: '⛏', mult: 8 },
-  { key: 'diamond', emoji: '💎', mult: 10 },
+  { key: 'privkey', emoji: '🔑', mult: 10 },
 ] as const;
 
 function registerBonus(scene: Phaser.Scene, key: string, emoji: string) {
