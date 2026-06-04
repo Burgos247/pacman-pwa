@@ -42,6 +42,7 @@ export class GameScene extends Phaser.Scene {
   spaceKey?: Phaser.Input.Keyboard.Key;
   isTouch = false;
   swipeStart: { x: number; y: number; t: number } | null = null;
+  private firstStart = true;
 
   sfx!: SFX;
   private scoreText!: Phaser.GameObjects.BitmapText;
@@ -65,6 +66,7 @@ export class GameScene extends Phaser.Scene {
     this.ghosts = [];
     this.lifesArea = [];
     this.eatenPellets = 0;
+    this.firstStart = true;
   }
 
   create() {
@@ -103,7 +105,7 @@ export class GameScene extends Phaser.Scene {
       const spaceDown = this.spaceKey?.isDown;
       const tap = this.input.activePointer.isDown;
       if (spaceDown || tap) {
-        if (this.lifes === 0) {
+        if (this.lifes <= 0) {
           this.scene.restart({ level: 1, lifes: 3, score: 0 });
         } else if (this.level <= MAX_LEVEL) {
           this.scene.restart({ level: this.level, lifes: this.lifes + 1, score: this.score });
@@ -252,10 +254,20 @@ export class GameScene extends Phaser.Scene {
   private afterPacmanRun() {
     this.sfx.intro.stop();
     const [blinky, pinky, inky, clyde] = this.ghosts;
-    blinky?.onStart();
-    pinky?.escapeFromHome(800);
-    inky?.escapeFromHome(1000);
-    clyde?.escapeFromHome(1200);
+    if (this.firstStart) {
+      blinky?.onStart();
+      pinky?.escapeFromHome(800);
+      inky?.escapeFromHome(1000);
+      clyde?.escapeFromHome(1200);
+      this.firstStart = false;
+    } else {
+      // After a death, all four ghosts wait inside the house for >= 1s
+      // before emerging through the gate one by one.
+      blinky?.escapeFromHome(1000);
+      pinky?.escapeFromHome(1300);
+      inky?.escapeFromHome(1600);
+      clyde?.escapeFromHome(1900);
+    }
   }
 
   private teleport: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (unit, portalObj) => {
@@ -332,6 +344,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   private meetGhost(ghost: Ghost) {
+    // Bail out if the scene is no longer running its game loop — otherwise
+    // the overlap keeps firing while pacman sits on the ghost during game
+    // over, driving `lifes` negative and tripping the else-branch repeatedly.
+    if (!this.active) return;
     if (!this.pacman.active || !ghost.active) return;
     if (ghost.mode === 'frightened' && this.pacman.mode === 'power') {
       ghost.die();
@@ -341,7 +357,7 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.ghosts.forEach((g) => g.stop());
       this.updateLifes(-1);
-      if (this.lifes === 0) {
+      if (this.lifes <= 0) {
         this.pacman.sfx.munch.stop();
         this.sfx.over.play();
         this.active = false;
@@ -349,6 +365,14 @@ export class GameScene extends Phaser.Scene {
       } else {
         this.pacman.die();
         this.ghosts.forEach((g) => g.doRespawn());
+        // Blinky's normal respawn point is at the gate (outside the house);
+        // tuck him in alongside pinky so he re-emerges with a delay too.
+        const blinky = this.ghosts[0];
+        const pinky = this.ghosts[1];
+        if (blinky && pinky) {
+          blinky.setPosition(pinky.x, pinky.y);
+          (blinky.body as Phaser.Physics.Arcade.Body).reset(pinky.x, pinky.y);
+        }
       }
     }
   }
