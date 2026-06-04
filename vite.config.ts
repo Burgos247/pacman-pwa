@@ -22,9 +22,9 @@ export default defineConfig({
         'assets/images/*.png',
       ],
       manifest: {
-        name: 'Pacman PWA',
-        short_name: 'Pacman',
-        description: 'Pacman built with Phaser 3 + Vite + TypeScript',
+        name: 'Pac-Toshi',
+        short_name: 'Pac-Toshi',
+        description: 'Bitcoin Pacman built with Phaser 3 + Vite + TypeScript',
         theme_color: '#fed049',
         background_color: '#000000',
         display: 'fullscreen',

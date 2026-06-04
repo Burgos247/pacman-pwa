@@ -1,4 +1,4 @@
-# Bitcoin Pacman
+# Pac-Toshi
 
 > Pacman web temático Bitcoin. Construido para el **hackathon de [La Crypta](https://lacrypta.ar/)**.
 

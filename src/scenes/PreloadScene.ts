@@ -10,12 +10,25 @@ export class PreloadScene extends Phaser.Scene {
   preload() {
     const { width, height } = this.scale;
 
-    const logo = this.add.image(width / 2, height / 2 - 40, 'logo');
-    logo.setScale((width * 0.8) / Math.max(logo.width, 1));
+    this.add
+      .text(width / 2, height / 2 - 40, 'PAC-TOSHI', {
+        fontFamily: 'sans-serif',
+        fontSize: '40px',
+        fontStyle: 'bold',
+        color: '#f7931a',
+      })
+      .setOrigin(0.5);
+    this.add
+      .text(width / 2, height / 2 + 8, 'loading…', {
+        fontFamily: 'sans-serif',
+        fontSize: '12px',
+        color: '#ffffff',
+      })
+      .setOrigin(0.5);
 
     const barBg = this.add.rectangle(width / 2, height / 2 + 80, 240, 18, 0x222222);
-    barBg.setStrokeStyle(2, 0xffff00);
-    const bar = this.add.rectangle(width / 2 - 118, height / 2 + 80, 4, 12, 0xffff00).setOrigin(0, 0.5);
+    barBg.setStrokeStyle(2, 0xfed049);
+    const bar = this.add.rectangle(width / 2 - 118, height / 2 + 80, 4, 12, 0xfed049).setOrigin(0, 0.5);
 
     this.load.on('progress', (p: number) => {
       bar.width = 236 * p;
