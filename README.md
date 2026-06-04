@@ -4,7 +4,7 @@
 
 Pacman es la moneda ₿ que recorre el laberinto devorando monedas fiat (€, $, £, ¥, ₽). Los rayos Lightning Network actúan como power-ups que te permiten comerte a los fantasmas (los bancos centrales que persiguen a Bitcoin).
 
-🎮 Juega en: _añade la URL de Vercel cuando esté lista_
+🎮 **Juega ya:** https://pac-toshi.vercel.app/
 
 ## Cómo se juega
 
@@ -45,9 +45,11 @@ npm run preview      # sirve la build de producción
 
 Requiere Node 18 o superior.
 
-## Despliegue en Vercel
+## Despliegue
 
-El proyecto es Vite estándar — Vercel autodetecta el framework. Sin configuración adicional necesaria.
+Desplegado en Vercel: https://pac-toshi.vercel.app/
+
+El proyecto es Vite estándar — Vercel autodetecta el framework (build `npm run build`, output `dist/`). Sin configuración adicional necesaria.
 
 ## Créditos
 
