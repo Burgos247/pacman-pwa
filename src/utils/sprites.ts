@@ -138,10 +138,33 @@ function registerPill(scene: Phaser.Scene) {
   scene.textures.addImage('pill', canvas as unknown as HTMLImageElement);
 }
 
+/**
+ * Bitcoin-themed bonus fruits. Each is a 16x16 emoji on transparent bg.
+ * Keys must stay in sync with BONUS_MULT in GameScene.
+ */
+export const BONUSES = [
+  { key: 'wallet', emoji: '👛', mult: 2 },
+  { key: 'whitepaper', emoji: '📄', mult: 3 },
+  { key: 'node', emoji: '🖥', mult: 4 },
+  { key: 'keys', emoji: '🔐', mult: 5 },
+  { key: 'satoshi', emoji: '⚡', mult: 6 },
+] as const;
+
+function registerBonus(scene: Phaser.Scene, key: string, emoji: string) {
+  const { canvas, ctx } = makeCanvas(TILE, TILE);
+  ctx.font = '13px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(emoji, TILE / 2, TILE / 2 + 1);
+  scene.textures.remove(key);
+  scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
+}
+
 export function registerBitcoinSprites(scene: Phaser.Scene) {
   registerPacman(scene);
   registerPellet(scene);
   registerPill(scene);
+  BONUSES.forEach((b) => registerBonus(scene, b.key, b.emoji));
 }
 
 export const CURRENCY_FRAME_COUNT = CURRENCY_SYMBOLS.length;

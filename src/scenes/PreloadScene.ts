@@ -25,9 +25,6 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('walls', '/assets/sprites/tiles.png');
     this.load.image('pill', '/assets/sprites/power-pill.png');
     this.load.image('pellet', '/assets/sprites/dot.png');
-    this.load.image('cherry', '/assets/sprites/cherry.png');
-    this.load.image('strawberry', '/assets/sprites/strawberry.png');
-    this.load.image('apple', '/assets/sprites/apple.png');
 
     const sheet = { frameWidth: TILE_SIZE, frameHeight: TILE_SIZE };
     this.load.spritesheet('blinky', '/assets/sprites/blinky.png', sheet);

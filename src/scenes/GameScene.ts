@@ -6,7 +6,7 @@ import { Portal } from '../objects/Portal';
 import { Dir } from '../utils/directions';
 import { difficulty, MAX_LEVEL, TILE_SIZE } from '../config/difficulty';
 import { getObjectsByType, getRespawnPoint, getTargetPoint } from '../utils/tilemap';
-import { CURRENCY_FRAME_COUNT } from '../utils/sprites';
+import { BONUSES, CURRENCY_FRAME_COUNT } from '../utils/sprites';
 import type { DifficultyLevel, GhostName, SFX } from '../types/game';
 
 interface GameSceneData {
@@ -16,8 +16,8 @@ interface GameSceneData {
 }
 
 const GHOST_NAMES: readonly GhostName[] = ['blinky', 'pinky', 'inky', 'clyde'] as const;
-const BONUS_TABLE: Record<string, string> = { '60': 'cherry', '120': 'strawberry', '150': 'apple' };
-const BONUS_MULT: Record<string, number> = { cherry: 2, strawberry: 3, apple: 4 };
+const BONUS_THRESHOLDS = new Set([60, 120, 150]);
+const BONUS_MULT: Record<string, number> = Object.fromEntries(BONUSES.map((b) => [b.key, b.mult]));
 const POINTS: Record<string, number> = { pellet: 10, pill: 50 };
 
 export class GameScene extends Phaser.Scene {
@@ -286,10 +286,9 @@ export class GameScene extends Phaser.Scene {
       this.ghosts.forEach((g) => g.stop());
       if (!nextLevel) this.sfx.win.play();
       this.showNotification(text);
-    } else {
-      const eated = `${this.eatenPellets}`;
-      const bonusName = BONUS_TABLE[eated];
-      if (bonusName) this.placeBonus(bonusName);
+    } else if (BONUS_THRESHOLDS.has(this.eatenPellets)) {
+      const pick = BONUSES[Phaser.Math.Between(0, BONUSES.length - 1)];
+      this.placeBonus(pick.key);
     }
   };
 
