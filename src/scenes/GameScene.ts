@@ -196,9 +196,7 @@ export class GameScene extends Phaser.Scene {
         // Tiled uses bottom-left origin for gid objects.
         const x = (o.x ?? 0) + (o.width ?? TILE_SIZE) / 2;
         const y = (o.y ?? 0) - (o.height ?? TILE_SIZE) / 2;
-        // Bias toward EUR (frame 0) with a sprinkle of the other currencies.
-        const frame =
-          Phaser.Math.Between(0, 9) < 7 ? 0 : Phaser.Math.Between(1, CURRENCY_FRAME_COUNT - 1);
+        const frame = Phaser.Math.Between(0, CURRENCY_FRAME_COUNT - 1);
         const pellet = this.pellets.create(x, y, 'pellet', frame) as Phaser.Physics.Arcade.Sprite;
         pellet.setOrigin(0.5);
         pellet.setData('kind', 'pellet');
@@ -261,11 +259,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   private teleport: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (unit, portalObj) => {
+    const movable = unit as unknown as Pacman | Ghost;
+    if (this.time.now < movable.teleportCooldownUntil) return;
     const portal = portalObj as unknown as Portal;
     const dest = this.portals.find((p) => p.props.i === portal.props.target);
     if (!dest) return;
-    const movable = unit as unknown as Pacman | Ghost;
-    movable.teleport(portal.x, portal.y, dest.x, dest.y);
+    movable.teleport(portal.edgeX, portal.edgeY, dest.edgeX, dest.edgeY);
   };
 
   private collect: Phaser.Types.Physics.Arcade.ArcadePhysicsCallback = (_pacman, item) => {
@@ -413,9 +412,16 @@ export class GameScene extends Phaser.Scene {
     } else {
       this.lifesArea.forEach((s) => s.destroy());
       this.lifesArea = [];
+      const size = TILE_SIZE;
       for (let i = 0; i < this.lifes; i++) {
-        const sprite = this.add.sprite(16 + i * (TILE_SIZE + 4), this.scale.height - 16, 'pacman', 1);
-        sprite.setScale(1.2);
+        const sprite = this.add.sprite(
+          this.scale.width - 12 - i * (size + 4),
+          16,
+          'pacman',
+          1,
+        );
+        sprite.setOrigin(1, 0.5);
+        sprite.setDepth(100);
         this.lifesArea.push(sprite);
       }
     }

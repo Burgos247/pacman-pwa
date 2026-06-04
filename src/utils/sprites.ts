@@ -44,14 +44,33 @@ function drawPacmanFrame(ctx: CanvasRenderingContext2D, mouthAngle: number, scal
   }
 }
 
-function drawCurrency(ctx: CanvasRenderingContext2D, symbol: string, big: boolean) {
+function drawCurrency(ctx: CanvasRenderingContext2D, symbol: string) {
   ctx.clearRect(0, 0, TILE, TILE);
-  ctx.fillStyle = big ? PELLET_GOLD : '#ffffff';
-  const fontPx = big ? 14 : 9;
-  ctx.font = `bold ${fontPx}px sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `10px sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(symbol, TILE / 2, TILE / 2 + 1);
+}
+
+function drawLightningBolt(ctx: CanvasRenderingContext2D) {
+  // Gold coin background
+  ctx.fillStyle = PELLET_GOLD;
+  ctx.beginPath();
+  ctx.arc(TILE / 2, TILE / 2, TILE / 2 - 1, 0, Math.PI * 2);
+  ctx.fill();
+  // Lightning bolt path (white, classic LN zigzag)
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(9, 2);
+  ctx.lineTo(4, 9);
+  ctx.lineTo(7, 9);
+  ctx.lineTo(6, 14);
+  ctx.lineTo(12, 7);
+  ctx.lineTo(9, 7);
+  ctx.lineTo(11, 2);
+  ctx.closePath();
+  ctx.fill();
 }
 
 function makeCanvas(width: number, height: number): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
@@ -102,7 +121,7 @@ function registerPellet(scene: Phaser.Scene) {
   CURRENCY_SYMBOLS.forEach((symbol, i) => {
     sheet.ctx.save();
     sheet.ctx.translate(i * TILE, 0);
-    drawCurrency(sheet.ctx, symbol, false);
+    drawCurrency(sheet.ctx, symbol);
     sheet.ctx.restore();
   });
   scene.textures.remove('pellet');
@@ -114,15 +133,7 @@ function registerPellet(scene: Phaser.Scene) {
 
 function registerPill(scene: Phaser.Scene) {
   const { canvas, ctx } = makeCanvas(TILE, TILE);
-  ctx.fillStyle = PELLET_GOLD;
-  ctx.beginPath();
-  ctx.arc(TILE / 2, TILE / 2, TILE / 2 - 2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#000000';
-  ctx.font = 'bold 12px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('₿', TILE / 2, TILE / 2 + 1);
+  drawLightningBolt(ctx);
   scene.textures.remove('pill');
   scene.textures.addImage('pill', canvas as unknown as HTMLImageElement);
 }

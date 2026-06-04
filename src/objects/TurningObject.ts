@@ -19,6 +19,9 @@ export abstract class TurningObject extends Phaser.Physics.Arcade.Sprite {
   protected currentSpeed: number;
   protected respawnPoint = new Phaser.Math.Vector2();
   protected turnPoint = new Phaser.Math.Vector2();
+  // Block further teleports for a short window so widened portal hitboxes
+  // can't re-trigger immediately on the exit side.
+  teleportCooldownUntil = 0;
 
   constructor(
     scene: Phaser.Scene,
@@ -157,10 +160,12 @@ export abstract class TurningObject extends Phaser.Physics.Arcade.Sprite {
     let x: number;
     let y: number;
 
+    // Exit one full tile past the target portal edge so the inflated hitbox
+    // doesn't re-trigger the overlap on the next frame.
     if (portalX === targetX || portalX > targetX) {
-      x = targetX + this.tileSize / 2;
+      x = targetX + this.tileSize + this.tileSize / 2;
     } else {
-      x = targetX - this.tileSize / 2;
+      x = targetX - this.tileSize - this.tileSize / 2;
     }
 
     if (portalY === targetY || portalY > targetY) {
@@ -171,6 +176,7 @@ export abstract class TurningObject extends Phaser.Physics.Arcade.Sprite {
 
     this.setPosition(x, y);
     (this.body as Phaser.Physics.Arcade.Body).reset(x, y);
+    this.teleportCooldownUntil = this.scene.time.now + 200;
     this.move(this.current);
   }
 }
