@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { TILE_SIZE } from '../config/difficulty';
+import { registerBitcoinSprites } from '../utils/sprites';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -49,6 +50,8 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   create() {
+    // Override pacman/pellet/pill with Bitcoin-themed canvas sprites.
+    registerBitcoinSprites(this);
     this.scene.start('Game');
   }
 }

@@ -6,6 +6,7 @@ import { Portal } from '../objects/Portal';
 import { Dir } from '../utils/directions';
 import { difficulty, MAX_LEVEL, TILE_SIZE } from '../config/difficulty';
 import { getObjectsByType, getRespawnPoint, getTargetPoint } from '../utils/tilemap';
+import { CURRENCY_FRAME_COUNT } from '../utils/sprites';
 import type { DifficultyLevel, GhostName, SFX } from '../types/game';
 
 interface GameSceneData {
@@ -195,7 +196,10 @@ export class GameScene extends Phaser.Scene {
         // Tiled uses bottom-left origin for gid objects.
         const x = (o.x ?? 0) + (o.width ?? TILE_SIZE) / 2;
         const y = (o.y ?? 0) - (o.height ?? TILE_SIZE) / 2;
-        const pellet = this.pellets.create(x, y, 'pellet') as Phaser.Physics.Arcade.Sprite;
+        // Bias toward EUR (frame 0) with a sprinkle of the other currencies.
+        const frame =
+          Phaser.Math.Between(0, 9) < 7 ? 0 : Phaser.Math.Between(1, CURRENCY_FRAME_COUNT - 1);
+        const pellet = this.pellets.create(x, y, 'pellet', frame) as Phaser.Physics.Arcade.Sprite;
         pellet.setOrigin(0.5);
         pellet.setData('kind', 'pellet');
         (pellet.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
