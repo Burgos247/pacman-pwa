@@ -83,6 +83,13 @@ export class Pacman extends TurningObject {
     (this.body as Phaser.Physics.Arcade.Body).enable = false;
     this.play('die');
     this.sfx.death.play();
+    // Deterministic respawn via timer instead of an animation-complete
+    // listener, which occasionally didn't fire and left the game hung.
+    this.scene.time.delayedCall(1300, () => {
+      this.setVisible(false);
+      this.setFrame(this.startFrame);
+      this.doRespawn();
+    });
   }
 
   doRespawn() {
@@ -110,11 +117,6 @@ export class Pacman extends TurningObject {
         repeat: 0,
       });
     }
-    this.on(Phaser.Animations.Events.ANIMATION_COMPLETE_KEY + 'die', () => {
-      this.setVisible(false);
-      this.setFrame(this.startFrame);
-      this.doRespawn();
-    });
   }
 
   private setSFX() {
