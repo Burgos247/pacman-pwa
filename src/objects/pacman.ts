@@ -78,12 +78,16 @@ export class Pacman extends TurningObject {
     this.setFlipX(false);
     this.setAngle(0);
     this.sfx.munch.stop();
+    // Disable the physics body so no overlap re-triggers during the die
+    // animation (would cost extra lives and freeze ghost escape tweens).
+    (this.body as Phaser.Physics.Arcade.Body).enable = false;
     this.play('die');
     this.sfx.death.play();
   }
 
   doRespawn() {
     super.doRespawn();
+    (this.body as Phaser.Physics.Arcade.Body).enable = true;
     this.started = false;
     this.setFrame(this.startFrame);
   }

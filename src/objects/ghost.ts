@@ -67,6 +67,10 @@ export class Ghost extends TurningObject {
   }
 
   doRespawn() {
+    // Cancel any in-flight escape tween so a half-faded ghost doesn't get
+    // left at alpha < 1 (which makes it look stuck/invisible).
+    this.scene.tweens.killTweensOf(this);
+    this.setAlpha(1);
     super.doRespawn();
     this.mode = 'scatter';
     this.restoreSpeed();
