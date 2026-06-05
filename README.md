@@ -51,6 +51,18 @@ Desplegado en Vercel: https://pac-toshi.vercel.app/
 
 El proyecto es Vite estándar — Vercel autodetecta el framework (build `npm run build`, output `dist/`). Sin configuración adicional necesaria.
 
+### Leaderboard global (Vercel KV)
+
+La tabla de scores usa Vercel KV via la serverless function en `api/scores.ts`. Para activarla:
+
+1. En el dashboard de Vercel → **Storage** → **Create Database** → **KV**
+2. Conéctala al proyecto `pac-toshi`. Eso inyecta automáticamente las env vars `KV_REST_API_URL` y `KV_REST_API_TOKEN`
+3. Redeploy
+
+Si no configuras KV, la API responde `{ scores: [], kv: false }` y el cliente cae a `localStorage` (cada navegador tiene su propia tabla).
+
+En dev local también se usa `localStorage` porque Vite no ejecuta funciones serverless.
+
 ## Créditos
 
 Este proyecto es un **fork** de [vitaliy-bobrov/pacman-pwa](https://github.com/vitaliy-bobrov/pacman-pwa) (MIT). El código original usaba Phaser 2 + Webpack 4; esta versión migra el stack a Phaser 3 + Vite + TypeScript moderno y reinterpreta el juego con tema Bitcoin para el hackathon de La Crypta.

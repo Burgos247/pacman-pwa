@@ -7,6 +7,7 @@ import { Dir } from '../utils/directions';
 import { difficulty, MAX_LEVEL, TILE_SIZE } from '../config/difficulty';
 import { getObjectsByType, getRespawnPoint, getTargetPoint } from '../utils/tilemap';
 import { BONUSES, CURRENCY_FRAME_COUNT } from '../utils/sprites';
+import { showGameOverOverlay } from '../utils/gameOverOverlay';
 import type { DifficultyLevel, GhostName, SFX } from '../types/game';
 
 interface GameSceneData {
@@ -43,6 +44,7 @@ export class GameScene extends Phaser.Scene {
   isTouch = false;
   swipeStart: { x: number; y: number; t: number } | null = null;
   private firstStart = true;
+  private overlayShown = false;
 
   sfx!: SFX;
   private scoreText!: Phaser.GameObjects.BitmapText;
@@ -67,6 +69,7 @@ export class GameScene extends Phaser.Scene {
     this.lifesArea = [];
     this.eatenPellets = 0;
     this.firstStart = true;
+    this.overlayShown = false;
   }
 
   create() {
@@ -99,6 +102,21 @@ export class GameScene extends Phaser.Scene {
     this.startReadyCountdown();
   }
 
+  private openScoreboard(title: 'GAME OVER' | 'YOU WIN!') {
+    if (this.overlayShown) return;
+    this.overlayShown = true;
+    const finalScore = this.score;
+    const finalLevel = title === 'YOU WIN!' ? MAX_LEVEL : Math.max(1, this.level);
+    showGameOverOverlay({
+      title,
+      score: finalScore,
+      level: finalLevel,
+      onRestart: () => {
+        this.scene.restart({ level: 1, lifes: 3, score: 0 });
+      },
+    });
+  }
+
   private popText(x: number, y: number, text: string, tint = 0xffffff, size = 8) {
     const t = this.add.bitmapText(x, y, 'kong', text, size).setOrigin(0.5).setTint(tint).setDepth(50);
     this.tweens.add({
@@ -126,6 +144,8 @@ export class GameScene extends Phaser.Scene {
     if (!this.active) {
       this.ghosts.forEach((g) => g.stop());
       this.pacman.stop();
+      // While the end-of-game overlay is up, it owns the restart UX.
+      if (this.overlayShown) return;
       const spaceDown = this.spaceKey?.isDown;
       const tap = this.input.activePointer.isDown;
       if (spaceDown || tap) {
@@ -328,8 +348,12 @@ export class GameScene extends Phaser.Scene {
       this.level++;
       this.active = false;
       this.ghosts.forEach((g) => g.stop());
-      if (!nextLevel) this.sfx.win.play();
-      this.showNotification(text);
+      if (!nextLevel) {
+        this.sfx.win.play();
+        this.openScoreboard('YOU WIN!');
+      } else {
+        this.showNotification(text);
+      }
     } else if (BONUS_THRESHOLDS.has(this.eatenPellets)) {
       const pick = BONUSES[Phaser.Math.Between(0, BONUSES.length - 1)];
       this.placeBonus(pick.key);
@@ -396,7 +420,7 @@ export class GameScene extends Phaser.Scene {
         this.pacman.sfx.munch.stop();
         this.sfx.over.play();
         this.active = false;
-        this.showNotification('game over');
+        this.openScoreboard('GAME OVER');
       } else {
         this.pacman.die();
         this.ghosts.forEach((g) => g.doRespawn());
