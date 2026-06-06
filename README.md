@@ -51,17 +51,14 @@ Desplegado en Vercel: https://pac-toshi.vercel.app/
 
 El proyecto es Vite estándar — Vercel autodetecta el framework (build `npm run build`, output `dist/`). Sin configuración adicional necesaria.
 
-### Leaderboard global (Vercel KV)
+### Leaderboard sobre Nostr
 
-La tabla de scores usa Vercel KV via la serverless function en `api/scores.ts`. Para activarla:
+La tabla de scores corre **enteramente en Nostr** — no hay servidor.
 
-1. En el dashboard de Vercel → **Storage** → **Create Database** → **KV**
-2. Conéctala al proyecto `pac-toshi`. Eso inyecta automáticamente las env vars `KV_REST_API_URL` y `KV_REST_API_TOKEN`
-3. Redeploy
+- Al registrar tu puntuación, el cliente construye un evento `kind:1` con tags `["t","pactoshi"]`, `["score","1234"]`, `["level","3"]` y `["alias","TU_NOMBRE"]`, lo firma vía **NIP-07** (`window.nostr`) y lo publica a varios relays públicos (`relay.damus.io`, `nos.lol`, `relay.primal.net`, `nostr.wine`, `relay.snort.social`).
+- Para mostrar el top, el cliente consulta esos mismos relays por todos los eventos con `#t=pactoshi`, agrupa por `pubkey` y se queda con el mejor score de cada uno.
 
-Si no configuras KV, la API responde `{ scores: [], kv: false }` y el cliente cae a `localStorage` (cada navegador tiene su propia tabla).
-
-En dev local también se usa `localStorage` porque Vite no ejecuta funciones serverless.
+Requisito: una extensión NIP-07 ([Alby](https://getalby.com/), [nos2x](https://github.com/fiatjaf/nos2x), Flamingo, etc.). Sin ella, el overlay deshabilita el botón de publicar pero la lista global se sigue cargando para verla.
 
 ## Créditos
 
