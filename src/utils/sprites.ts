@@ -163,11 +163,141 @@ function registerBonus(scene: Phaser.Scene, key: string, emoji: string) {
   scene.textures.addImage(key, canvas as unknown as HTMLImageElement);
 }
 
+/**
+ * Central bank palettes for each ghost (FED, ECB, BoJ, BoE).
+ */
+const BANK_THEMES = {
+  blinky: { body: '#2d5e3e', accent: '#fed049', flag: '#ffffff' }, // FED (greenback)
+  pinky: { body: '#003399', accent: '#ffcc00', flag: '#ffcc00' },  // ECB (EU blue)
+  inky: { body: '#bc002d', accent: '#ffffff', flag: '#ffffff' },   // BoJ (Japan red)
+  clyde: { body: '#7b1e2d', accent: '#f7c948', flag: '#ffffff' },  // BoE (BoE red)
+} as const;
+
+type BankKey = keyof typeof BANK_THEMES;
+type BankTheme = (typeof BANK_THEMES)[BankKey];
+
+function drawBankFacade(ctx: CanvasRenderingContext2D, theme: BankTheme, phase: 0 | 1) {
+  ctx.clearRect(0, 0, TILE, TILE);
+
+  // Triangular pediment (the classical roof) sits on top.
+  ctx.fillStyle = theme.accent;
+  ctx.beginPath();
+  ctx.moveTo(8, 0);
+  ctx.lineTo(1, 5);
+  ctx.lineTo(15, 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tiny flag-coloured stripe along the entablature for character.
+  ctx.fillStyle = theme.flag;
+  ctx.fillRect(2, 5, 12, 1);
+
+  // Building body (between pediment and floor) — the column zone.
+  ctx.fillStyle = theme.body;
+  ctx.fillRect(2, 6, 12, 7);
+
+  // Four pillars; phase shifts highlights to suggest motion.
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 4; i++) {
+    const x = 3 + i * 3;
+    ctx.fillRect(x, 7, 1, 6);
+  }
+  // Phase highlight: a single bright pillar slides across.
+  ctx.fillStyle = theme.accent;
+  const hl = phase === 0 ? 3 + 0 * 3 : 3 + 2 * 3;
+  ctx.fillRect(hl, 7, 1, 6);
+
+  // Floor slab.
+  ctx.fillStyle = theme.accent;
+  ctx.fillRect(1, 13, 14, 1);
+
+  // Two-step base; widen the bottom step on alternate phases for a subtle
+  // walk feel.
+  ctx.fillStyle = theme.body;
+  if (phase === 0) {
+    ctx.fillRect(1, 14, 14, 1);
+    ctx.fillRect(0, 15, 16, 1);
+  } else {
+    ctx.fillRect(0, 14, 16, 1);
+    ctx.fillRect(1, 15, 14, 1);
+  }
+}
+
+function drawFrightenedBank(ctx: CanvasRenderingContext2D, blink: boolean) {
+  ctx.clearRect(0, 0, TILE, TILE);
+  // Panicked banker — blue/white background, big "?" centered.
+  const bg = blink ? '#ffffff' : '#1832a8';
+  const fg = blink ? '#1832a8' : '#ffffff';
+  ctx.fillStyle = bg;
+  // Building silhouette but in panic colors.
+  ctx.beginPath();
+  ctx.moveTo(8, 0);
+  ctx.lineTo(1, 5);
+  ctx.lineTo(15, 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillRect(2, 5, 12, 9);
+  ctx.fillRect(1, 14, 14, 2);
+  ctx.fillStyle = fg;
+  ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('?', 8, 10);
+}
+
+function drawDeadEyes(ctx: CanvasRenderingContext2D, frame: number) {
+  ctx.clearRect(0, 0, TILE, TILE);
+  // Defeated bankers reduced to floating eyes returning to base.
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(4, 6, 3, 4);
+  ctx.fillRect(9, 6, 3, 4);
+  ctx.fillStyle = '#1832a8';
+  const dirs = [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [-1, 0],
+  ];
+  const [dx, dy] = dirs[frame % dirs.length];
+  ctx.fillRect(5 + dx, 7 + dy, 1, 2);
+  ctx.fillRect(10 + dx, 7 + dy, 1, 2);
+}
+
+function registerBankGhost(scene: Phaser.Scene, key: BankKey) {
+  // Match the 14-frame layout the Ghost animations expect:
+  // 0..7 walk, 8..9 bored, 10..11 prenormal, 12..15 dead-<name>.
+  const FRAMES = 16;
+  const sheet = makeCanvas(TILE * FRAMES, TILE);
+  const theme = BANK_THEMES[key];
+
+  for (let i = 0; i < FRAMES; i++) {
+    sheet.ctx.save();
+    sheet.ctx.translate(i * TILE, 0);
+    if (i < 8) {
+      drawBankFacade(sheet.ctx, theme, (i % 2) as 0 | 1);
+    } else if (i < 10) {
+      drawFrightenedBank(sheet.ctx, false);
+    } else if (i < 12) {
+      drawFrightenedBank(sheet.ctx, true);
+    } else {
+      drawDeadEyes(sheet.ctx, i - 12);
+    }
+    sheet.ctx.restore();
+  }
+
+  scene.textures.remove(key);
+  scene.textures.addSpriteSheet(key, sheet.canvas as unknown as HTMLImageElement, {
+    frameWidth: TILE,
+    frameHeight: TILE,
+  });
+}
+
 export function registerBitcoinSprites(scene: Phaser.Scene) {
   registerPacman(scene);
   registerPellet(scene);
   registerPill(scene);
   BONUSES.forEach((b) => registerBonus(scene, b.key, b.emoji));
+  (['blinky', 'pinky', 'inky', 'clyde'] as const).forEach((g) => registerBankGhost(scene, g));
 }
 
 export const CURRENCY_FRAME_COUNT = CURRENCY_SYMBOLS.length;
