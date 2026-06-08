@@ -104,7 +104,7 @@ export async function signAndPublishScore(input: {
       ['alias', alias],
       ['client', 'pac-toshi'],
     ],
-    content: `Pac-Toshi: ${score} pts (level ${level}) — ${alias} #${TAG}`,
+    content: `💥 Acabo de hacer ${score} pts en Pac-Toshi (nivel ${level}) 🍕⚡ — pactoshi.vercel.app #${TAG} #bitcoin`,
   };
 
   const signed = await nostr.signEvent(unsigned);
