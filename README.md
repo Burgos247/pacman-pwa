@@ -15,7 +15,7 @@ El ranking se construye sobre Nostr: cada score publicado es una nota firmada co
 ## Cómo se juega
 
 ### Teclado
-- **Flechas** — mover Pacman
+- **Flechas** o **WASD** — mover Pacman (WASD útil en Librewolf y otros browsers Mozilla donde las flechas hacen scroll del documento)
 - **SPACE** — empezar un nivel nuevo o reiniciar tras game over
 
 ### Pantalla táctil

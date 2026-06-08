@@ -40,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   ghostsHome = new Phaser.Math.Vector2();
 
   controls?: Phaser.Types.Input.Keyboard.CursorKeys;
+  wasd?: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   spaceKey?: Phaser.Input.Keyboard.Key;
   isTouch = false;
   swipeStart: { x: number; y: number; t: number } | null = null;
@@ -195,11 +196,16 @@ export class GameScene extends Phaser.Scene {
 
   private keyboardControls() {
     const c = this.controls;
-    if (!c) return;
-    if (c.left.isDown) this.pacman.onControls(Dir.LEFT);
-    else if (c.right.isDown) this.pacman.onControls(Dir.RIGHT);
-    else if (c.up.isDown) this.pacman.onControls(Dir.UP);
-    else if (c.down.isDown) this.pacman.onControls(Dir.DOWN);
+    const w = this.wasd;
+    if (!c && !w) return;
+    const left = (c?.left.isDown ?? false) || (w?.A.isDown ?? false);
+    const right = (c?.right.isDown ?? false) || (w?.D.isDown ?? false);
+    const up = (c?.up.isDown ?? false) || (w?.W.isDown ?? false);
+    const down = (c?.down.isDown ?? false) || (w?.S.isDown ?? false);
+    if (left) this.pacman.onControls(Dir.LEFT);
+    else if (right) this.pacman.onControls(Dir.RIGHT);
+    else if (up) this.pacman.onControls(Dir.UP);
+    else if (down) this.pacman.onControls(Dir.DOWN);
     else this.pacman.turning = Dir.NONE;
   }
 
@@ -563,6 +569,9 @@ export class GameScene extends Phaser.Scene {
       if (kb) {
         this.spaceKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.controls = kb.createCursorKeys();
+        // WASD fallback for browsers/extensions that hijack arrow keys
+        // (Librewolf + some Mozilla-based setups have been reported).
+        this.wasd = kb.addKeys('W,A,S,D') as typeof this.wasd;
       }
     }
   }
