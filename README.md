@@ -6,6 +6,12 @@ Pacman es la moneda ₿ que recorre el laberinto devorando monedas fiat (€, $,
 
 🎮 **Juega ya:** https://pac-toshi.vercel.app/
 
+## 🏆 Premio sorpresa en sats
+
+Tras la premiación del **30 de junio**, quien quede **#1 en el leaderboard global** se lleva un **premio sorpresa en sats** ⚡
+
+El ranking se construye sobre Nostr: cada score publicado es una nota firmada con `#pactoshi` (ver sección [Leaderboard sobre Nostr](#leaderboard-sobre-nostr)). El conteo final se hace tomando el mejor score por `pubkey`.
+
 ## Cómo se juega
 
 ### Teclado
