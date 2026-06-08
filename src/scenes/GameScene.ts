@@ -572,6 +572,11 @@ export class GameScene extends Phaser.Scene {
         // WASD fallback for browsers/extensions that hijack arrow keys
         // (Librewolf + some Mozilla-based setups have been reported).
         this.wasd = kb.addKeys('W,A,S,D') as typeof this.wasd;
+        // Tell Phaser to preventDefault on game keys so the browser can't
+        // scroll the document, move the caret-browsing cursor, or pass them
+        // to extensions before we receive them (root cause of arrow keys
+        // not working in Librewolf / Firefox with caret-browsing).
+        kb.addCapture('UP,DOWN,LEFT,RIGHT,SPACE,W,A,S,D');
       }
     }
   }
