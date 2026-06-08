@@ -352,7 +352,8 @@ export class GameScene extends Phaser.Scene {
         this.sfx.win.play();
         this.openScoreboard('YOU WIN!');
       } else {
-        this.showNotification(text);
+        const hint = this.isTouch ? 'tap to continue' : 'press space to continue';
+        this.showNotification(`${text}\n${hint}`);
       }
     } else if (BONUS_THRESHOLDS.has(this.eatenPellets)) {
       const pick = BONUSES[Phaser.Math.Between(0, BONUSES.length - 1)];
