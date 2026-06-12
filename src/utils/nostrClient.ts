@@ -15,6 +15,11 @@ import { nip19 } from 'nostr-tools';
  */
 
 const TAG = 'pactoshi';
+// NIP-78 (application-specific data): score records that don't pollute the
+// user's social feed. The leaderboard query filters for both this and kind:1
+// for backwards-compatibility with notes published before this split.
+const KIND_RECORD = 30078;
+const KIND_NOTE = 1;
 const RELAYS = [
   'wss://relay.damus.io',
   'wss://nos.lol',
@@ -83,6 +88,8 @@ export async function signAndPublishScore(input: {
   score: number;
   level: number;
   alias: string;
+  /** If true, also publishes a kind:1 note (visible on the user's timeline). */
+  broadcastNote?: boolean;
 }): Promise<NostrScoreEntry> {
   if (!hasNostr()) {
     throw new Error('No Nostr extension detected (NIP-07).');
@@ -92,28 +99,49 @@ export async function signAndPublishScore(input: {
   const alias = (input.alias ?? '').trim().slice(0, 12).toUpperCase() || 'ANON';
   const score = Math.max(0, Math.floor(input.score));
   const level = Math.max(0, Math.floor(input.level));
+  const createdAt = Math.floor(Date.now() / 1000);
 
-  const unsigned: UnsignedEvent = {
-    kind: 1,
+  // Score record (NIP-78). Replaceable per (pubkey, kind, d) — re-publishing
+  // overwrites the user's previous entry, so the leaderboard always shows
+  // their most recent score.
+  const recordEvent: UnsignedEvent = {
+    kind: KIND_RECORD,
     pubkey,
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: createdAt,
     tags: [
+      ['d', TAG],
       ['t', TAG],
       ['score', String(score)],
       ['level', String(level)],
       ['alias', alias],
       ['client', 'pac-toshi'],
     ],
-    content: `💥 Acabo de hacer ${score} pts en Pac-Toshi (nivel ${level}) 🍕⚡ — pactoshi.vercel.app #${TAG} #bitcoin`,
+    content: `Pac-Toshi score: ${score} (level ${level}) — ${alias}`,
   };
+  const signedRecord = await nostr.signEvent(recordEvent);
+  const recordPromises = pool.publish(RELAYS, signedRecord);
 
-  const signed = await nostr.signEvent(unsigned);
+  if (input.broadcastNote) {
+    const noteEvent: UnsignedEvent = {
+      kind: KIND_NOTE,
+      pubkey,
+      created_at: createdAt,
+      tags: [
+        ['t', TAG],
+        ['score', String(score)],
+        ['level', String(level)],
+        ['alias', alias],
+        ['client', 'pac-toshi'],
+      ],
+      content: `💥 Acabo de hacer ${score} pts en Pac-Toshi (nivel ${level}) 🍕⚡ — pactoshi.vercel.app #${TAG} #bitcoin`,
+    };
+    const signedNote = await nostr.signEvent(noteEvent);
+    // Fire and forget — leaderboard doesn't depend on this.
+    pool.publish(RELAYS, signedNote);
+  }
 
-  // Fire-and-forget to every relay; whichever ack first is fine.
-  const promises = pool.publish(RELAYS, signed);
-  // Wait at most ~3s for any relay to accept it.
   await Promise.race([
-    Promise.any(promises).catch(() => undefined),
+    Promise.any(recordPromises).catch(() => undefined),
     new Promise<void>((resolve) => setTimeout(resolve, 3000)),
   ]);
 
@@ -130,7 +158,7 @@ export async function signAndPublishScore(input: {
 export async function queryTopScores(limit = 10, timeoutMs = 4000): Promise<NostrScoreEntry[]> {
   const bestByPubkey = new Map<string, NostrScoreEntry>();
   await new Promise<void>((resolve) => {
-    const filter: Filter = { kinds: [1], '#t': [TAG], limit: 500 };
+    const filter: Filter = { kinds: [KIND_NOTE, KIND_RECORD], '#t': [TAG], limit: 500 };
     const sub = pool.subscribeMany(
       RELAYS,
       filter,

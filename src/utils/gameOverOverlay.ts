@@ -64,6 +64,10 @@ function ensureStyles(): void {
     .pt-section-title .pt-optional { color: #ffffff; opacity: 0.55; letter-spacing: 0; text-transform: lowercase; font-weight: normal; }
     .pt-skip { font-size: 11px; opacity: 0.55; margin: 6px 0 4px; text-align: center; }
     .pt-skip b { color: #fed049; opacity: 1; }
+    .pt-broadcast { display: flex; align-items: center; gap: 8px; margin: 4px 0 4px; font-size: 12px; opacity: 0.9; cursor: pointer; }
+    .pt-broadcast input { width: 14px; height: 14px; accent-color: #f7931a; cursor: pointer; }
+    .pt-broadcast em { opacity: 0.55; font-style: normal; }
+    .pt-broadcast b { color: #fed049; }
     .pt-list { list-style: none; padding: 0; margin: 0 0 12px; font-size: 13px; }
     .pt-list li {
       display: grid; grid-template-columns: 28px 1fr auto; gap: 8px;
@@ -120,14 +124,18 @@ export function showGameOverOverlay(opts: GameOverOptions): void {
     <div class="pt-card">
       <h2 class="pt-title">${opts.title}</h2>
       <div class="pt-score">final score<b>${opts.score}</b></div>
-      <div class="pt-section-title">PUBLISH YOUR SCORE <span class="pt-optional">(optional)</span></div>
+      <div class="pt-section-title">SAVE YOUR SCORE TO THE LEADERBOARD</div>
       ${nostrHint}
       <form class="pt-form" autocomplete="off">
         <input name="alias" maxlength="12" placeholder="alias (visible name)" autocapitalize="characters" />
-        <button type="submit" ${nostrAvailable ? '' : 'disabled'}>sign &amp; publish</button>
+        <button type="submit" ${nostrAvailable ? '' : 'disabled'}>sign &amp; save</button>
       </form>
+      <label class="pt-broadcast">
+        <input type="checkbox" name="broadcast" />
+        <span>Also <b>publish a note</b> to my Nostr profile <em>(optional)</em></span>
+      </label>
       <div class="pt-status" data-status></div>
-      <div class="pt-skip">…or skip — just hit <b>play again</b> below.</div>
+      <div class="pt-skip">…or skip entirely — just hit <b>play again</b> below.</div>
       <div class="pt-section-title">TOP 10 (Nostr · #pactoshi)</div>
       <ol class="pt-list" data-list></ol>
       <div class="pt-restart">
@@ -173,7 +181,14 @@ export function showGameOverOverlay(opts: GameOverOptions): void {
     submitBtn.disabled = true;
     setStatus('Waiting for your Nostr extension to sign…');
     try {
-      const entry = await signAndPublishScore({ score: opts.score, level: opts.level, alias });
+      const broadcastCheckbox = form.querySelector<HTMLInputElement>('input[name="broadcast"]');
+      const broadcastNote = broadcastCheckbox?.checked ?? false;
+      const entry = await signAndPublishScore({
+        score: opts.score,
+        level: opts.level,
+        alias,
+        broadcastNote,
+      });
       highlightPubkey = entry.pubkey;
       setStatus('Published. Refreshing leaderboard…', 'ok');
       submitBtn.textContent = 'published';
