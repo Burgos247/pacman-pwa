@@ -61,6 +61,9 @@ function ensureStyles(): void {
     .pt-status.err { color: #ff6b6b; }
     .pt-status.ok { color: #6bff8e; }
     .pt-section-title { color: #fed049; font-size: 12px; margin: 12px 0 6px; letter-spacing: 1px; }
+    .pt-section-title .pt-optional { color: #ffffff; opacity: 0.55; letter-spacing: 0; text-transform: lowercase; font-weight: normal; }
+    .pt-skip { font-size: 11px; opacity: 0.55; margin: 6px 0 4px; text-align: center; }
+    .pt-skip b { color: #fed049; opacity: 1; }
     .pt-list { list-style: none; padding: 0; margin: 0 0 12px; font-size: 13px; }
     .pt-list li {
       display: grid; grid-template-columns: 28px 1fr auto; gap: 8px;
@@ -117,12 +120,14 @@ export function showGameOverOverlay(opts: GameOverOptions): void {
     <div class="pt-card">
       <h2 class="pt-title">${opts.title}</h2>
       <div class="pt-score">final score<b>${opts.score}</b></div>
+      <div class="pt-section-title">PUBLISH YOUR SCORE <span class="pt-optional">(optional)</span></div>
       ${nostrHint}
       <form class="pt-form" autocomplete="off">
         <input name="alias" maxlength="12" placeholder="alias (visible name)" autocapitalize="characters" />
         <button type="submit" ${nostrAvailable ? '' : 'disabled'}>sign &amp; publish</button>
       </form>
       <div class="pt-status" data-status></div>
+      <div class="pt-skip">…or skip — just hit <b>play again</b> below.</div>
       <div class="pt-section-title">TOP 10 (Nostr · #pactoshi)</div>
       <ol class="pt-list" data-list></ol>
       <div class="pt-restart">
